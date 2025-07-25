@@ -1,6 +1,7 @@
 version : "3.3"
 services :
   web :
+     image: "shre-45/django-todo:latest"
      build : .
      ports :
          - "8000:8000"
