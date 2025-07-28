@@ -1,0 +1,60 @@
+@Library("Shared") _
+pipeline {
+    agent { label "Shreshta" }
+
+    stages {
+        stage("Hello"){
+            steps{
+                script{
+                    hello()
+                }
+            }
+        }
+        
+        stage("Clone code") {
+            steps {
+               script{
+                clone("https://github.com/shre-45/django-todo.git","develop")
+               }
+            }
+        }    
+        stage("Build") {
+            steps {
+                script{
+                    docker_build("todo-app","latest","shreshtaanugu")
+                }
+            }
+        }
+        stage("Push to dockerhub") {
+            steps {
+               script{
+                   docker_push("todo-app","latest","shreshtaanugu")
+               }
+                
+            }
+            
+        }
+        stage("Deploy") {
+            steps {
+                echo "Deploying the image"
+                sh "docker-compose up -d"
+            }
+        }
+    }    
+    post {
+         failure {
+            echo 'Failure!'
+            mail to: 'anugushreshtareddy8985@gmail.com',
+             subject: "FAILED: ${env.JOB_NAME} – Build #${env.BUILD_NUMBER}",
+             body: "Job '${env.JOB_NAME}' (${env.BUILD_URL}) failed."
+         }
+         success {
+             echo 'Build and Test Stages Successful!'
+             mail to: 'anugushreshtareddy8985@gmail.com',
+             subject: "SUCCESS: ${env.JOB_NAME} – Build #${env.BUILD_NUMBER}",
+             body: "Job '${env.JOB_NAME}' (${env.BUILD_URL}) successful."
+             
+         }
+    }
+
+}
