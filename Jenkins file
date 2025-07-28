@@ -1,0 +1,51 @@
+pipeline {
+    agent any
+
+    stages {
+        stage("Clone code") {
+            steps {
+                echo "Cloning the code"
+                git url:"https://github.com/shre-45/django-todo.git", branch: "develop"
+            }
+        }
+        stage("Build") {
+            steps {
+                echo "Building the image"
+                sh "docker build -t todo-app ."
+            }
+        }
+        stage("Push to dockerhub") {
+            steps {
+                echo "Pushing the image to dockerhub"
+                withCredentials([usernamePassword(credentialsId:"dockerhub",passwordVariable:"dockerhubPass",usernameVariable:"dockerhubUser")]){
+                sh "docker tag todo-app ${env.dockerhubUser}/todo-app:latest"
+                sh "docker login -u ${env.dockerhubUser} -p ${env.dockerhubPass}"
+                sh "docker push ${env.dockerhubUser}/todo-app:latest"
+                
+                }
+            }
+        }
+        stage("Deploy") {
+            steps {
+                echo "Deploying the image"
+                sh "docker-compose up -d"
+            }
+        }
+    }
+    post {
+         failure {
+            echo 'Failure!'
+            mail to: 'anugushreshtareddy8985@gmail.com',
+             subject: "FAILED: ${env.JOB_NAME} – Build #${env.BUILD_NUMBER}",
+             body: "Job '${env.JOB_NAME}' (${env.BUILD_URL}) failed."
+         }
+         success {
+             echo 'Build and Test Stages Successful!'
+             mail to: 'anugushreshtareddy8985@gmail.com',
+             subject: "SUCCESS: ${env.JOB_NAME} – Build #${env.BUILD_NUMBER}",
+             body: "Job '${env.JOB_NAME}' (${env.BUILD_URL}) successful."
+             
+         }
+    }
+
+}
